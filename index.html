@@ -6,29 +6,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Protótipo Projeto Unisanta</title>
     <link rel="stylesheet" href="./styles.css">
-    <script src="./scripts.js" defer></script>
+    <script>
+    window.addEventListener("load", () => {
+        document.querySelector(".section--loading-inner").classList.add("--show")
+        const nextScript = document.createElement("script");
+        nextScript.src="./scripts.js";
+        nextScript.setAttribute("defer", "");
+        document.head.appendChild(nextScript);
+    });
+    </script>
 </head>
 <body>
-    <div class="container container--outter --flex --column">
-            <section class="section section--loading --flex --column">
-                <div class="section--loading-inner --flex --column"> 
-                    <div class="container container--animation --flex">
-                        <div class="container container--logo --flex">
+    <div class="container container--outter --flex --column --prevent-select">
+        <section class="section section--loading --flex --column" data-index="--loading-i" data-jsname="loading">
+            <div class="section--loading-inner --flex --column"> 
+                <div class="container container--animation --flex">
+                    <div class="container container--logo --flex">
+                        <div class="container--logo-inner --flex">
+                            <img src="./images/logo_1.svg">
                             <img src="./images/logo_2.svg">
-                            <div class="container--logo-inner --flex">
-                                <img src="./images/logo_1.svg">
-                                <img src="./images/logo_3.svg">
-                            </div>
-                        </div>
-                        <div class="container container--text hidden">
-                            <img src="images/logo_4.svg">
+                            <img src="./images/logo_3.svg">
                         </div>
                     </div>
-                    <div class="container container--btn hidden">
-                        <button class="btn btn--outline">começar</button>
+                    <div class="container container--text">
+                        <img src="images/logo_4.svg">
                     </div>
                 </div>
-            </section>
+                <div class="container container--btn">
+                    <button class="btn btn--outline">começar</button>
+                </div>
+            </div>
+        </section>
+        <section class="section section--permissions --flex --column" data-index="--permissions-i" data-jsname="permissions">
+            <div class="container container--permissions-inner --flex --column">
+                <div class="container container--icon">
+                    <img src="./images/question.svg">
+                </div>
+                <div class="container container--text --flex --column --prevent-select">
+                    <p class="text text--permission">Ultilizamos alguns recursos para melhorar sua experiência conosco:</p>
+                    <ul class="list list--item --flex">
+                        <li>Cookies</li>
+                        <li>Câmera</li>
+                        <li>Sensores</li>
+                    </ul>
+                </div>
+                <div class="container container--btn">
+                    <button class="btn btn--solid --prevent-select">Permitir</button>
+                </div>
+            </div>
+        </section>
+        <section class="section section--application" data-index="--application-i" data-jsname="application">
+            <div class="container container--application --flex --column">
+                <div class="container container--application-inner --flex --column">
+                    <div class="container container--text --flex">
+                        <h1 class="text text--title">Ao Vivo</h1>
+                        <div class="icon icon--dot"></div>
+                    </div>
+                    <div class="container container--video">
+                        <video class="video video--feed" autoplay playsinline></video>
+                    </div>
+                    <div class="container container--results --flex --column">
+                        <h2 class="text text--title">Resultados</h2>
+                        <div class="container container--results-inner">
+                            <div class="display display--results --flex --column">
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </div>
 </body>
 </html>
