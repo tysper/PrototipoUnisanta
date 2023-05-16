@@ -10,8 +10,8 @@ const displayDiv = document.querySelector("body > div > section.section.section-
 
 // Control & Other Variables
 let videoHeight, videoWidth;
-let ctx1, ctx2;
-
+let ctx1, ctx2, cv1, cv2;
+let motionTimer;
 // Creating the section object to manipulate it from our javascript code
 const allSections = document.querySelectorAll(".section");
 const sectionNames = {};
@@ -24,10 +24,7 @@ const videoStopedEvent = new CustomEvent("videostoped", {
     bubbles: false,
     cancelable: true,
     composed: false
-})
-
-
-
+});
 
 // Functions
 
@@ -79,8 +76,10 @@ async function grantVideo(e=undefined) {
         return new Promise(getVideoSize);
     }).then(() => {
         //creating the contexts
-        [ctx1, ctx2] = [undefined,undefined]
-        .map((_) => document.createElement("canvas"))
+        const cvs = [undefined,undefined]
+        .map((_) => document.createElement("canvas"));
+        [cv1, cv2] = cvs;
+        [ctx1, ctx2] = cvs
         .map((canva) => {
             canva.height = videoHeight;
             canva.width = videoWidth;
@@ -98,6 +97,12 @@ async function grantVideo(e=undefined) {
 
 function start(e) {
     allowVoice(e);
+
+    // Adding tesseract
+    const script = document.createElement("script");
+    script.src = "./tesseract.min.js";
+    document.head.appendChild(script);
+    
     if(localStorage.getItem("permissionGranted") === "true") {
         goToSection("application");
     } else {
@@ -123,39 +128,110 @@ permissionsBtn.addEventListener("click", askPermissions);
 
 // Canvas Elements
 
+const checkInterval = 200;
+const maxTimeSecs = 1;
+const times = maxTimeSecs*1000/checkInterval; 
+let count = 0;
 videoFeedVid.addEventListener("videostoped", () => console.log("Stopped"));
 
+function getVoices() {
+    let voices = speechSynthesis.getVoices();
+    if(!voices.length) {
+        let utterance = new SpeechSynthesisUtterance(" ");
+        speechSynthesis.speak(utterance);
+        voices = speechSynthesis.getVoices();
+    }
+    return voices;
+}
+
+function speak(text, voice, rate, pitch, volume){
+    let speakData = new SpeechSynthesisUtterance();
+    speakData.text = text;
+    speakData.voice = voice;
+    speakData.rate = rate;
+    speakData.pitch = pitch;
+    speakData.volume = volume;
+    speakData.lang = "pt-br"
+
+    speechSynthesis.speak(speakData);
+    return speakData;
+}
+
 function checkForMotion(){
-    ctx1.clearRect(0, 0, videoWidth, videoHeight);
-    ctx2.clearRect(0, 0, videoWidth, videoHeight);
+    if(ctx1 && ctx2) {
+        ctx1.clearRect(0, 0, videoWidth, videoHeight);
+        ctx2.clearRect(0, 0, videoWidth, videoHeight);
+        
+        
+        ctx1.drawImage(videoFeedVid, 0, 0, videoWidth, videoHeight);
+        try {
+            setTimeout(() => {
+                ctx2.drawImage(videoFeedVid, 0, 0, videoWidth, videoHeight);
+                
+                let imageScore = 0;
+                
+                const imgData1 = ctx1.getImageData(0, 0, videoWidth, videoHeight);
+                const imgData2 = ctx2.getImageData(0, 0, videoWidth, videoHeight);
+                
+                for(let i = 0; i<imgData1.data.length; i+=4) {
+                    let r = Math.abs(imgData1.data[i] - imgData2.data[i])*3;
+                    let g = Math.abs(imgData1.data[i+1] - imgData2.data[i+1])*3;
+                    let b = Math.abs(imgData1.data[i+2] - imgData2.data[i+2])*3;
+                    
+                    const pixelScore = (r+g+b)/3;
+                    if(pixelScore>200) {
+                        imageScore++;
+                    }
+                }
 
 
-    ctx1.drawImage(videoFeedVid, 0, 0, videoWidth, videoHeight);
-    try {
-        setTimeout(() => {
-            ctx2.drawImage(videoFeedVid, 0, 0, videoWidth, videoHeight);
+                addResult((imageScore <= 4000? "Parado": "Movimento")+" "+imageScore);
+                if(imageScore <= 4000) {
+                    count++;
+                    if(count===times){
+                        clearInterval(motionTimer);
+                        let voices = getVoices().find(voice => voice.lang === "pt-BR");
+                        Tesseract.recognize(cv1, "por")
+                        .then(textObj => {
+                            const result = `${textObj.data.text}`;
+                            addResult(textObj.data.text);
+                            return new Promise((resolve, reject) => {
+                                if(result.match(/[A-Za-zÀ-ÿ]{3,}/g)?.length > 2) {
+                                    let text = result.match(/[A-Za-zÀ-ÿ]{1,}/g).join(" "); 
+                                    let speaker = speak(text, voices, 0.5, 4, 1);
+                                    speaker.addEventListener("end", () => {
+                                        resolve();
+                                    })
+                                    speaker.addEventListener("error", () => {
+                                        addResult("Algum erro aconteceu....");
+                                        resolve();
+                                    })
+                                } else {
+                                    addResult("Não é um texto");
+                                    resolve();
+                                }
+                            })
+                        })
+                        .then(() => {
+                            motionTimer = setInterval(checkForMotion, checkInterval);
+                            count=0;
+                        })
+                    }
+                } else {
+                    count=0;
+                }
 
-            let imageScore = 0;
-            
-            const imgData1 = ctx1.getImageData(0, 0, videoWidth, videoHeight);
-            const imgData2 = ctx2.getImageData(0, 0, videoWidth, videoHeight);
 
-            for(let i = 0; i<imgData1.data.length; i+=4) {
-                let r = Math.abs(imgData1.data[i] - imgData2.data[i])*10;
-                let g = Math.abs(imgData1.data[i+1] - imgData2.data[i+1])*10;
-                let b = Math.abs(imgData1.data[i+2] - imgData2.data[i+2])*10;
-    
-                        const pixelScore = (r+g+b)/3;
-                        if(pixelScore>250) {
-                            imageScore++;
-                        }
-            }
-            addResult(imageScore);
-        }, 50);
-    } catch {
-        console.error("Some error occurred inside of the checkForMotion()");
+
+
+            }, 50);
+        } catch {
+            console.error("Some error occurred inside of the checkForMotion()");
+        }
     }
 }
+
+motionTimer = setInterval(checkForMotion, checkInterval);
 
 //Results Section
 function addResult(text) {
@@ -165,5 +241,3 @@ function addResult(text) {
     p.scrollIntoView();
     return p;
 }
-
-let motionTimer = setInterval(checkForMotion, 200);
