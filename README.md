@@ -13,4 +13,4 @@ The current libraries and materials being used are:
 
 We want to make the best out of this project so if you have any suggestion please let me know ❤️.
 
-Live Demo: <a href="https://tysper.github.io/PrototipoUnisanta/" target="_blank">Link</a>.
+Live Demo: <a href="https://frolicking-manatee-7ecb56.netlify.app/" target="_blank">Link</a>.
