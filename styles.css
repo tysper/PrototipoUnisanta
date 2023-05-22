@@ -4,6 +4,9 @@
     --color--main: #766be8;
     --color--secondary: #f0f2f6;
 
+    --gui--video--section: #fff;
+    --background--video--section: #74c0fc;
+
     --loading-i: 3;
     --permissions-i:2;
     --application-i:1;
@@ -186,7 +189,7 @@ video {
 
 .section--application {
     z-index: var(--application-i);
-    background-color: var(--color--secondary);
+    background-color: var(--background--video--section);
 }
 
 .container.container--application {
@@ -211,6 +214,8 @@ video {
     font-size: 2.2em;
     font-weight: 800;
     letter-spacing: -0.5px;
+    color: var(--gui--video--section);
+    transition: color ease 0.8s;
 }
 
 .container--application-inner .icon--dot {
@@ -225,11 +230,12 @@ video {
     width: 30em;
     height: 30em;
     border-radius: 10px;
-    box-shadow: 0 0 10px 5px rgba(0,0,0,0.08);
+    box-shadow: 0 0 10px 5px rgba(0,0,0,0.2);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow-x: hidden;
+    border: solid 3px var(--gui--video--section);
 }
 
 .container.container--video video.video {
@@ -294,8 +300,20 @@ video {
     margin: 4px 0;
 }
 
+.container--controls {
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
 
-
+.container--controls .btn {
+    color: var(--gui--video--section);
+    border: 3px solid var(--gui--video--section);
+    transition: color ease 0.8s, border ease 0.8s, transform 0.1s ease, box-shadow 0.3s ease;
+    box-shadow: 0 0 20px 5px rgba(0,0,0, 0.2);
+    background-color: transparent;
+    width: 6em;
+}
 
 
 

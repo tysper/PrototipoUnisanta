@@ -7,6 +7,7 @@
     <title>Protótipo Projeto Unisanta</title>
     <link rel="stylesheet" href="./styles.css">
     <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.css">
     <script>
     window.addEventListener("load", () => {
         document.querySelector(".section--loading-inner").classList.add("--show")
@@ -70,19 +71,24 @@
             <div class="container container--application --flex --column">
                 <div class="container container--application-inner --flex --column">
                     <div class="container container--text --flex">
-                        <h1 class="text text--title">Ao Vivo</h1>
-                        <div class="icon icon--dot"></div>
+                        <h1 class="text text--title state">Procurando Texto...</h1>
                     </div>
                     <div class="container container--video">
                         <video class="video video--feed" autoplay playsinline></video>
                     </div>
-                    <div class="container container--results --flex --column">
+                    <!-- <div class="container container--results --flex --column">
                         <h2 class="text text--title">Resultados</h2>
+
                         <div class="container container--results-inner">
                             <div class="display display--results --flex --column">
                                 
                             </div>
                         </div>
+                    </div> -->
+                    <div class="container container--controls --flex">
+                        <button class="btn btn--outline btn--play"><i class="fa-solid fa-play"></i></button>
+                        <button class="btn btn--outline btn--pause"><i class="fa-solid fa-pause"></i></button>
+                        <button class="btn btn--outline btn--stop"><i class="fa-solid fa-stop"></i></button>
                     </div>
                 </div>
             </div>

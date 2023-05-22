@@ -7,11 +7,19 @@ const videoStatusH1 = document.querySelector("body > div > section.section.secti
 const liveDotDiv = document.querySelector("body > div > section.section.section--application > div > div > div.container.container--text.--flex > div");
 const videoFeedVid = document.querySelector("body > div > section.section.section--application > div > div > div.container.container--video > video");
 const displayDiv = document.querySelector("body > div > section.section.section--application > div > div > div.container.container--results.--flex.--column > div > div");
+const stateDisplay = document.querySelector("body > div > section.section.section--application > div > div > div.container.container--text.--flex > h1");
+
+const playBtn = document.querySelector("body > div > section.section.section--application > div > div > div.container.container--controls.--flex > button.btn.btn--outline.btn--play")
+const pauseBtn = document.querySelector("body > div > section.section.section--application > div > div > div.container.container--controls.--flex > button.btn.btn--outline.btn--pause")
+const stopBtn = document.querySelector("body > div > section.section.section--application > div > div > div.container.container--controls.--flex > button.btn.btn--outline.btn--stop")
 
 // Control & Other Variables
 let videoHeight, videoWidth;
 let ctx1, ctx2, cv1, cv2;
 let motionTimer;
+let state = "go";
+let currentSpeaker;
+let speakerPlaying;
 // Creating the section object to manipulate it from our javascript code
 const allSections = document.querySelectorAll(".section");
 const sectionNames = {};
@@ -20,6 +28,20 @@ allSections.forEach(sectionEl => sectionNames[`${sectionEl.getAttribute("data-js
 
 // Custom Events
 const videoStopedEvent = new CustomEvent("videostoped", {
+    detail: {},
+    bubbles: false,
+    cancelable: true,
+    composed: false
+});
+
+const btnPlayPressedEvent = new CustomEvent("btnplaypressed", {
+    detail: {},
+    bubbles: false,
+    cancelable: true,
+    composed: false
+});
+
+const btnPausePressedEvent = new CustomEvent("btnpausepressed", {
     detail: {},
     bubbles: false,
     cancelable: true,
@@ -57,7 +79,7 @@ function allowVoice(e=undefined) {
 
 
 async function grantVideo(e=undefined) {
-    await navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: "environment", width: { min: 400, ideal: 500, max: 600 }, height: { min: 400, ideal: 500, max: 600 }}})
+    await navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: "environment", width: { min: 500, ideal: 600, max: 700 }, height: { min: 500, ideal: 600, max: 700 }}})
     .then(media => {
         videoFeedVid.srcObject = media;
         // defining outter control variables
@@ -91,6 +113,53 @@ async function grantVideo(e=undefined) {
     });
     e?.target.removeEventListener("touchend",grantVideo);
     e?.target.removeEventListener("click",grantVideo);
+}
+
+function setMood(name, text="true") {
+    const combinations = {
+        found: {
+            background: "#74c0fc",
+            color: "#ffffff",
+            state: "Processando"
+        },
+        moving: {
+            background: "#ffd43b",
+            color: "#fff",
+            state: "Camera Instável"
+        },
+        rest: {
+            background: "#51cf66",
+            color: "#ffffff",
+            state: "Camera Estável"
+        },
+        error: {
+            background: "#fa5252",
+            color: "#ffffff",
+            state: "Erro"
+        },
+        playing: {
+            background: "#ffffff",
+            color: "#333",
+            state: "Reproduzindo"
+        }
+
+    }
+
+    const update = combinations[name];
+    
+    document.documentElement.style.setProperty("--background--video--section", update.background);
+    document.documentElement.style.setProperty("--gui--video--section", update.color);
+    if(text){
+        changeAppState(update.state)
+    }
+    
+    
+    return undefined;
+}
+
+function changeAppState(text) {
+    stateDisplay.textContent = text;
+    return undefined;
 }
 
 // --- SECTION: LOADING ---
@@ -129,7 +198,7 @@ permissionsBtn.addEventListener("click", askPermissions);
 // Canvas Elements
 
 const checkInterval = 200;
-const maxTimeSecs = 1;
+const maxTimeSecs = 2;
 const times = maxTimeSecs*1000/checkInterval; 
 let count = 0;
 videoFeedVid.addEventListener("videostoped", () => console.log("Stopped"));
@@ -158,7 +227,7 @@ function speak(text, voice, rate, pitch, volume){
 }
 
 function checkForMotion(){
-    if(ctx1 && ctx2) {
+    if(ctx1 && ctx2 && state !== "stop") {
         ctx1.clearRect(0, 0, videoWidth, videoHeight);
         ctx2.clearRect(0, 0, videoWidth, videoHeight);
         
@@ -182,35 +251,72 @@ function checkForMotion(){
                     if(pixelScore>200) {
                         imageScore++;
                     }
+                    if(state === "stop") {
+                        break;
+                    }
                 }
 
 
-                addResult((imageScore <= 4000? "Parado": "Movimento")+" "+imageScore);
-                if(imageScore <= 4000) {
+                // addResult((imageScore <= 4000? "Parado": "Movimento")+" "+imageScore);
+                if(imageScore <= 5000 && state !== "stop") {
                     count++;
-                    if(count===times){
+                    setMood("rest");
+                    if(count===times && state !== "stop"){
+                        setMood("found");
                         clearInterval(motionTimer);
                         let voices = getVoices().find(voice => voice.lang === "pt-BR");
                         Tesseract.recognize(cv1, "por")
                         .then(textObj => {
-                            const result = `${textObj.data.text}`;
-                            addResult(textObj.data.text);
-                            return new Promise((resolve, reject) => {
-                                if(result.match(/[A-Za-zÀ-ÿ]{3,}/g)?.length > 2) {
-                                    let text = result.match(/[A-Za-zÀ-ÿ]{1,}/g).join(" "); 
-                                    let speaker = speak(text, voices, 0.5, 4, 1);
-                                    speaker.addEventListener("end", () => {
-                                        resolve();
+                            if(state !== "stop"){
+                                const result = `${textObj.data.text}`;
+                                let text;
+                                try{
+                                    text = result.match(/[A-Za-zÀ-ÿ]{1,}/g).join(" "); 
+                                    return new Promise((resolve, reject) => {
+                                        if(state === "pause"){
+                                            let speaker = speak(text, voices, 0.5, 4, 1);
+                                            
+                                            speaker.addEventListener("btnpausepressed", () => {
+                                                speaker.pause();
+                                            });
+                                            
+                                            speaker.addEventListener("btnplaypressed", () => {
+                                                speaker.resume();
+                                            });
+                                            
+                                            speaker.addEventListener("start", () => {
+                                                if(state === "stop") {
+                                                    reject();
+                                                }
+                                                setMood("playing");
+                                                speakerPlaying = true;
+                                            })
+                                            speaker.addEventListener("end", () => {
+                                                if(state === "stop") {
+                                                    reject();
+                                                }
+                                                speakerPlaying = false;
+                                                resolve();
+                                            })
+                                            speaker.addEventListener("error", () => {
+                                                // addResult("Algum erro aconteceu....");
+                                                if(state === "stop") {
+                                                    reject();
+                                                }
+                                                setMood("error");
+                                                resolve();
+                                            })
+                                            currentSpeaker = speaker;
+                                            // addResult(text);
+                                        } else {
+                                            reject();
+                                        }
                                     })
-                                    speaker.addEventListener("error", () => {
-                                        addResult("Algum erro aconteceu....");
-                                        resolve();
-                                    })
-                                } else {
-                                    addResult("Não é um texto");
-                                    resolve();
+                                } catch {
+                                    setMood("error");
+                                    console.log("Erro no regex e durante reprodução.")
                                 }
-                            })
+                            }
                         })
                         .then(() => {
                             motionTimer = setInterval(checkForMotion, checkInterval);
@@ -219,6 +325,7 @@ function checkForMotion(){
                     }
                 } else {
                     count=0;
+                    setMood("moving");
                 }
 
 
@@ -241,3 +348,73 @@ function addResult(text) {
     p.scrollIntoView();
     return p;
 }
+
+
+// State buttons
+function stopProcesses(){
+    remoEvListener(stopBtn, stopProcesses);
+    state = "stop";
+    clearInterval(motionTimer);
+    setMood("playing", false);
+    changeAppState("Parado");
+    if(speakerPlaying){
+        speakerPlaying = false;
+        currentSpeaker.cancel();
+    }
+}
+
+function startProcesses(){
+    remoEvListener(playBtn, startProcesses);
+    if(state !== "pause"){
+        state = "go";
+        motionTimer = setInterval(checkForMotion, checkInterval);
+    } else if(state === "pause") {
+        state = "go";
+        if(speakerPlaying){
+            currentSpeaker.dispatchEvent(btnPlayPressedEvent);   
+        } else {
+            motionTimer = setInterval(checkForMotion, checkInterval);
+        }
+    }
+    changeAppState("Reproduzindo");
+}
+
+function pauseProcesses(){
+    remoEvListener(pauseBtn, pauseProcesses);
+    state = "pause";
+    if(speakerPlaying) {
+        currentSpeaker.dispatchEvent(btnPausePressedEvent);
+    }
+    clearInterval(motionTimer);
+    
+    setMood("playing", false);
+    changeAppState("Pausado");
+
+}
+
+function addEvListener(target, func) {
+    target.addEventListener("touchend", func);
+    target.addEventListener("click", func);
+}
+
+function remoEvListener(target, func) {
+    target.removeEventListener("touchend", func);
+    target.removeEventListener("click", func);
+}
+
+
+function addAllEventListener(){
+    [[playBtn, startProcesses], [pauseBtn, pauseProcesses], [stopBtn, stopProcesses]].forEach((el) => {
+        let [target, func] = el;
+        addEvListener(target, func);
+    })
+}
+
+function remoAllEventListener(){
+    [[playBtn, startProcesses], [pauseBtn, pauseProcesses], [stopBtn, stopProcesses]].forEach((el) => {
+        let [target, func] = el;
+        remoEvListener(target, func);
+    })
+}
+
+addAllEventListener();
