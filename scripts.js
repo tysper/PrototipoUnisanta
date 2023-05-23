@@ -198,7 +198,7 @@ permissionsBtn.addEventListener("click", askPermissions);
 // Canvas Elements
 
 const checkInterval = 200;
-const maxTimeSecs = 2;
+const maxTimeSecs = 1;
 const times = maxTimeSecs*1000/checkInterval; 
 let count = 0;
 videoFeedVid.addEventListener("videostoped", () => console.log("Stopped"));
@@ -257,8 +257,8 @@ function checkForMotion(){
                 }
 
 
-                // addResult((imageScore <= 4000? "Parado": "Movimento")+" "+imageScore);
-                if(imageScore <= 5000 && state !== "stop") {
+                
+                if(imageScore <= 10000 && state !== "stop") {
                     count++;
                     setMood("rest");
                     if(count===times && state !== "stop"){
@@ -270,12 +270,12 @@ function checkForMotion(){
                             if(state !== "stop"){
                                 const result = `${textObj.data.text}`;
                                 let text;
-                                try{
+                                // try{
                                     text = result.match(/[A-Za-zÀ-ÿ]{1,}/g).join(" "); 
                                     return new Promise((resolve, reject) => {
-                                        if(state === "pause"){
+                                        if(state !== "pause"){
                                             let speaker = speak(text, voices, 0.5, 4, 1);
-                                            
+                                            currentSpeaker = speaker;
                                             speaker.addEventListener("btnpausepressed", () => {
                                                 speaker.pause();
                                             });
@@ -287,6 +287,7 @@ function checkForMotion(){
                                             speaker.addEventListener("start", () => {
                                                 if(state === "stop") {
                                                     reject();
+                                                    speaker.cancel();
                                                 }
                                                 setMood("playing");
                                                 speakerPlaying = true;
@@ -306,16 +307,16 @@ function checkForMotion(){
                                                 setMood("error");
                                                 resolve();
                                             })
-                                            currentSpeaker = speaker;
+                                            
                                             // addResult(text);
                                         } else {
                                             reject();
                                         }
                                     })
-                                } catch {
-                                    setMood("error");
-                                    console.log("Erro no regex e durante reprodução.")
-                                }
+                                // } catch {
+                                //     setMood("error");
+                                //     console.log("Erro no regex e durante reprodução.")
+                                // }
                             }
                         })
                         .then(() => {
@@ -380,6 +381,7 @@ function startProcesses(){
 }
 
 function pauseProcesses(){
+    addAllEventListener();
     remoEvListener(pauseBtn, pauseProcesses);
     state = "pause";
     if(speakerPlaying) {
